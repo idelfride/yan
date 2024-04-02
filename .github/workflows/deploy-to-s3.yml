@@ -1,8 +1,8 @@
-name: Deploy to S3
+name: "Deploy to S3"
 on:
   push:
     branches:
-      - Dev
+      - dev
 
 jobs:
   deploy:
@@ -40,11 +40,11 @@ jobs:
           exit 1
         fi
       env:
-        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}  
+        AWS_BUCKET_NAME: isiicamala 
     - name: Deploy to AWS S3
       if: success() 
       run: |
         ls -la
-        aws s3 sync . s3://${{ secrets.AWS_BUCKET_NAME }} --delete --exclude ".git/*" --exclude ".github/*"
+        aws s3 sync . s3://isiicamala --delete --exclude ".git/*" --exclude ".github/*"
       env:
-        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+        AWS_BUCKET_NAME: isiicamala
