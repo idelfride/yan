@@ -3,7 +3,7 @@ name: "Deployement git hub S3"
 on: 
   push:
     branches:
-      - main # uniquement sur la branche claye
+      - dev # uniquement sur la branche claye
 jobs:
   deployement: # nom que l'on donne au job
     runs-on: ubuntu-latest # instances 
@@ -11,7 +11,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Installation du package AWS CLI
+    - name: Installation du package AWS CLI 2
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip
