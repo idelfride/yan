@@ -1,57 +1,40 @@
-name: "Deploy-to-ubuntu-git hub S3"
-# on: [push] # toutes les branches
+# n-hesitez pas a corriger les erreurs presentes dans cette configuration
+name: "Deploy-to-Ubuntu"
+
 on: 
   push:
     branches:
-      - prod # uniquement sur la branche claye
-jobs:
-  deployement: # nom que l'on donne au job
-    runs-on: ubuntu-latest # instances 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
 
-    - name: Installation du package AWS CLI2
+      - prod
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    #--> ATTENTION : NE TOUCHEZ PAS A CE STEP
+    - name: Insert commit ID into HTML
+      run: |
+        sed -i "s/data-commit-id=\".*\"/data-commit-id=\"${{ github.sha }}\"/g" index.html
+        # Vérifier que le remplacement a été effectué correctement
+        grep -q "data-commit-id=\"${{ github.sha }}\"" index.html && echo "ID du commit inséré avec succès." || { echo "Erreur : ID du commit non inséré."; exit 1; }
+      env:
+        AWS_BUCKET_NAME: ${{ secrets.isiicamala }}
+
+    - name: Install SSH client
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pip
-        sudo pip3 install awscli
+        sudo apt-get install -y openssh-client
 
-    - name: Configuration de AWS credentials 3
+    - name: Deploy to AWS Lightsail
       run: |
-        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws configure set region eu-west-3 
-    # teste et ceation du buket
+        touch mykey.pem
+        echo "${{ secrets.AWS_LIGHTSAIL_SSH_KEY }}" > mykey.pem
+        chmod 600 ./mykey.pem
+        ssh -o StrictHostKeyChecking=no -i mykey.pem ubuntu@${{ secrets.AWS_LIGHTSAIL_PUBLIC_IP }} 'mkdir -p /var/www/html/${{ secrets.AWS_BUCKET_NAME }}'
+        scp -o StrictHostKeyChecking=no -i mykey.pem -r ./* ubuntu@${{ secrets. AWS_LIGHTSAIL_PUBLIC_IP }}:/var/www/html/${{ secrets.AWS_BUCKET_NAME }}
 
-    - name: Check if bucket exists 
-      run: |
-        if aws s3api head-bucket --bucket $AWS_BUCKET_NAME; then
-          echo "Bucket exists."
-        else
-          echo "Bucket does not exist. Stopping the pipeline."
-          exit 1
-        fi
-      env:
-        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-
-    - name: Deploy to AWS S3
-      if: success() # utilisée pour s'assurer que le déploiement vers AWS S3 ne se produit que si toutes les étapes précédentes du workflow se sont terminées avec succès. Cela permet d'éviter de déployer des modifications potentiellement invalides ou incomplètes.
-      run: |
-        ls -la
-        aws s3 sync . s3://${{ secrets.AWS_BUCKET_NAME }} --delete --exclude ".git/*" --exclude ".github/*"
-      env:
-        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-       
-
-    #- name: List directory
-    #  run: |
-    #    ls -la
-      
-    #- name: Create new file
-    #  run: |
-    #    touch newfile.txt
-    
-    #- name: List directory of all file
-    #  run: |
-    #    ls -la
